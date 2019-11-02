@@ -71,6 +71,8 @@ class ParserGoose(Parser):
         if self._extractor is None:
             config = Configuration()
             config.stopwords_class = StopWords
+            config.strict = False
+
             extractor = Goose(config)
             self._extractor = extractor
         article = self._extractor.extract(raw_html=page_html)
@@ -79,9 +81,30 @@ class ParserGoose(Parser):
 
 
 def read_news_corpora():
+    """
+    Read news file newsCorpora.csv:
+    Attribute Information:
+        FILENAME #1: newsCorpora.csv
+        DESCRIPTION: News pages
+        FORMAT: ID TITLE URL PUBLISHER CATEGORY STORY HOSTNAME TIMESTAMP
+
+    where:
+        ID Numeric ID
+        TITLE News title
+        URL Url
+        PUBLISHER Publisher name
+        CATEGORY News category (b = business, t = science and technology, e = entertainment, m = health)
+        STORY Alphanumeric ID of the cluster that includes news about the same story
+        HOSTNAME Url hostname
+        TIMESTAMP Approximate time the news was published,
+                  as the number of milliseconds since the epoch 00:00:00 GMT, January 1, 1970
+    :return: pd.dataframe with news info
+    """
     header = ["ID", "TITLE", "URL", "PUBLISHER", "CATEGORY", "STORY", "HOSTNAME", "TIMESTAMP"]
     news_corpora = pd.read_csv(os.path.join(DATA_DIR, "newsCorpora.csv"), sep='\t', header=None,
-                               names=header)
+                               names=header, low_memory=False,
+                               dtype={"ID": str, "TITLE": str, "URL": str, "CATEGORY": str, "STORY": str,
+                                      "HOSTNAME": str, "TIMESTAMP": str})
     news_corpora.set_index('URL', inplace=True)
     return news_corpora
 
@@ -99,24 +122,30 @@ def main():
     out_newspaper = os.path.join(DATA_DIR, args.outfile_newspaper)
     in_file = os.path.join(DATA_DIR, args.in_file)
 
-    in_data = pd.read_csv(in_file, sep=',', iterator=True, chunksize=100)
+    in_data = pd.read_csv(in_file, sep=',', iterator=True, chunksize=100, dtype={'url': str, 'html': str},
+                          low_memory=False, encoding='utf-8')
 
     news_corpora = read_news_corpora()
     try:
         parsers = (
             ParserDragnet(out_dragnet),
-            # ParserGoose(out_goose),
+            ParserGoose(out_goose),
             ParserNewsPaper(out_newspaper),
         )
-
         for chunk in in_data:
             for index, row in chunk.iterrows():
+                id = news_corpora.loc['url']["ID"]
+                title = news_corpora.loc[row['url']]["TITLE"]
+                category = news_corpora.loc[row['url']]["CATEGORY"]
+                story = news_corpora.loc[row['url']]["STORY"]
+                timestamp = news_corpora.loc[row['url']]["TIMESTAMP"]
+                logger.info("Current url: {}, id: {}".format(row['url'], id))
                 for parser in parsers:
-                    title = news_corpora.loc[row['url']]["TITLE"]
-                    category = news_corpora.loc[row['url']]["CATEGORY"]
-                    story = news_corpora.loc[row['url']]["STORY"]
-                    timestamp = news_corpora.loc[row['url']]["TIMESTAMP"]
-                    parser.save_to_file_parsed_line(row['html'], row['url'], title, story, category, timestamp)
+                    try:
+                        logger.info("-- parser: {}".format(parser.__class__))
+                        parser.save_to_file_parsed_line(row['html'], row['url'], title, story, category, timestamp)
+                    except ValueError as e:
+                        logger.warning("Got exception! {}".format(e))
 
     except KeyboardInterrupt:
         logger.info("KeyboardInterrupt, exiting...")
