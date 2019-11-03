@@ -8,6 +8,7 @@ import argparse
 import logging
 import re
 import pandas as pd
+import numpy as np
 import csv
 import os
 
@@ -35,14 +36,15 @@ class Parser:
     def writer(self):
         if self._csv_writer is None:
             self._outfile = open(self._outfile_name, "w", 1)
-            self._csv_writer = csv.DictWriter(self._outfile, fieldnames=["url", "text", "title",
+            self._csv_writer = csv.DictWriter(self._outfile, fieldnames=["url", "id", "text", "title",
                                                                          "story", "category", "timestamp"])
             self._csv_writer.writeheader()
         return self._csv_writer
 
-    def save_to_file_parsed_line(self, page_html: str, url: str, title: str, story: str, category: str, timestamp: str):
+    def save_to_file_parsed_line(self, page_html: str, url: str, id: str, title: str, story: str, category: str,
+                                 timestamp: str):
         parse_res = self.parse_news_text(page_html, url)
-        parse_res.update(dict(title=title, story=story, timestamp=timestamp, category=category))
+        parse_res.update(dict(title=title, story=story, timestamp=timestamp, category=category, id=id))
         self.writer.writerow(parse_res)
 
 
@@ -103,8 +105,8 @@ def read_news_corpora():
     header = ["ID", "TITLE", "URL", "PUBLISHER", "CATEGORY", "STORY", "HOSTNAME", "TIMESTAMP"]
     news_corpora = pd.read_csv(os.path.join(DATA_DIR, "newsCorpora.csv"), sep='\t', header=None,
                                names=header, low_memory=False,
-                               dtype={"ID": str, "TITLE": str, "URL": str, "CATEGORY": str, "STORY": str,
-                                      "HOSTNAME": str, "TIMESTAMP": str})
+                               dtype={"ID": int, "TITLE": str, "URL": str, "CATEGORY": str, "STORY": str,
+                                      "HOSTNAME": str, "TIMESTAMP": int})
     news_corpora.set_index('URL', inplace=True)
     return news_corpora
 
@@ -134,16 +136,22 @@ def main():
         )
         for chunk in in_data:
             for index, row in chunk.iterrows():
-                id = news_corpora.loc['url']["ID"]
+                id_news = news_corpora.loc[row['url']]["ID"]
                 title = news_corpora.loc[row['url']]["TITLE"]
                 category = news_corpora.loc[row['url']]["CATEGORY"]
                 story = news_corpora.loc[row['url']]["STORY"]
                 timestamp = news_corpora.loc[row['url']]["TIMESTAMP"]
-                logger.info("Current url: {}, id: {}".format(row['url'], id))
+                logger.info("Current url: {}, id: {}".format(row['url'], id_news))
+
+                if type(row['html']) != str and np.isnan(row['html']):
+                    logger.warning("Nan value!")
+                    continue
+
                 for parser in parsers:
                     try:
                         logger.info("-- parser: {}".format(parser.__class__))
-                        parser.save_to_file_parsed_line(row['html'], row['url'], title, story, category, timestamp)
+                        parser.save_to_file_parsed_line(row['html'], row['url'], id_news, title, story, category,
+                                                        timestamp)
                     except ValueError as e:
                         logger.warning("Got exception! {}".format(e))
 
