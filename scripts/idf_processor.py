@@ -1,7 +1,7 @@
 import pandas as pd
-import re
 import os
 import itertools
+import csv
 from com.expleague.media_space.topics.file_read_util import FileReadUtil
 from sklearn.feature_extraction.text import TfidfVectorizer
 from com.expleague.media_space.topics.embedding_model import SimpleTextNormalizer
@@ -21,15 +21,12 @@ def main():
                 words_in_doc = itertools.chain(*normilizer.normalized_sentences(text))
                 documents.append(" ".join(words_in_doc))
 
-    tfidf = TfidfVectorizer(lowercase=True)  # , stop_words='english'
-    tfidf_matrix = tfidf.fit_transform(documents)
-    feature_names = tfidf.get_feature_names()
-    word_idf = dict()
-    for col in tfidf_matrix.nonzero()[1]:
-        word_idf[feature_names[col]] = tfidf_matrix[0, col]
-    print(word_idf.items()[0:100])
-    assert 1 / 0
+    vectorizer = TfidfVectorizer(stop_words=None, norm='l2', token_pattern=r"(?u)\b[a-z0-9']+\b")
+    vectorizer.fit_transform(documents)
+    word_idf = dict(zip(vectorizer.get_feature_names(), vectorizer.idf_))
+
     with open(os.path.join(DATA_DIR, 'idf_dragnet.txt'), 'w+') as fin:
+        fin.write(str(len(word_idf)) + '\n')
         _, words = FileReadUtil.load_fasttext(os.path.join(DATA_DIR, "news_dragnet.vec"))
         for word in words:
             idf = word_idf[word]
