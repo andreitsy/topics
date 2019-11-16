@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from dragnet import extract_content
+from dragnet import blocks
 from goose3 import Goose
 from goose3.text import StopWords
 from goose3.configuration import Configuration
@@ -154,6 +155,10 @@ def main():
                                                         timestamp)
                     except ValueError as e:
                         logger.warning("Got exception! {}".format(e))
+                    except blocks.BlockifyError as be:
+                        logger.warning("Got Blockify Error {}".format(be))
+                    except Exception as e:
+                        logger.warning("Got unknown exception! {}".format(e))
 
     except KeyboardInterrupt:
         logger.info("KeyboardInterrupt, exiting...")
