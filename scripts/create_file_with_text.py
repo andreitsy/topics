@@ -3,12 +3,12 @@ import numpy as np
 import os
 import requests
 import re
-from com.expleague.media_space.topics.embedding_model import SimpleTextNormalizer
+from com.expleague.media_space.topics.embedding_model import GasparettiTextNormalizer
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 if __name__ == "__main__":
     texts = pd.read_csv(os.path.join(DATA_DIR, "parsed-texts-dragnet.csv"), chunksize=1000)
-    normilizer = SimpleTextNormalizer()
+    normilizer = GasparettiTextNormalizer()
     with open(os.path.join(DATA_DIR, 'data.txt'), 'w+') as the_file:
         for chunk in texts:
             for index, row in chunk.iterrows():
