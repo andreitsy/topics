@@ -19,4 +19,4 @@ if __name__ == "__main__":
                 text = normilizer.normalized_sentences(row["text"])
                 url = row["url"]
                 words_in_doc = itertools.chain(*text)
-                f.write(url + " | " + " ".join(words_in_doc) + "\n")
+                f.write(url + " " + " ".join(words_in_doc) + "\n")
