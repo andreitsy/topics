@@ -5,7 +5,7 @@ from sklearn.preprocessing import normalize
 
 from com.expleague.media_space.topics.fast_qt import FastQt
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+DATA_DIR = "/home/andreitsy/Yandex.Disk/cs_center/topics/data/models"
 
 
 def load_fasttext(fname, skip=0, limit=10e9):
@@ -31,12 +31,12 @@ def load_fasttext(fname, skip=0, limit=10e9):
 
 # noinspection PyArgumentList
 def main():
-    data, words = load_fasttext(os.path.join(DATA_DIR, "news_dragnet.vec"), 100, 100000)
+    data, words = load_fasttext(os.path.join(DATA_DIR, "news_dragnet.vec"), 1000, 90000)
     # data, words = load_glove('lenta-decomp-new', 20000)
 
-    data = normalize(data, norm='l2')
-    threshold = 0.7
-    min_cluster = 100
+    data = normalize(data)
+    threshold = 0.75
+    min_cluster = 60
 
     cluster_words = list()
 
@@ -50,10 +50,11 @@ def main():
     print('Number clusters:', len(cluster_words))
 
     with open(os.path.join(DATA_DIR, "cluster_words.txt"), 'w+') as f_words:
-        with open(os.path.join(DATA_DIR, "cluster_centroids.txt"), 'w+') as f_centroids:
+        with open(os.path.join(DATA_DIR, "cluster_centroids_words.txt"), 'w+') as f_centroids:
             f_words.write(str(len(cluster_words)) + '\n')
             f_centroids.write(str(len(cluster_words)) + ' ' + str(data.shape[1]) + '\n')
-            for cluster in cluster_words:
+            for i, cluster in enumerate(cluster_words):
+                print(f"{i} = {len(cluster[0])}")
                 f_words.write(" ".join(cluster[0]) + '\n')
                 f_centroids.write(" ".join([str(x) for x in cluster[1]]) + '\n')
 

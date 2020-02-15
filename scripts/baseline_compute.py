@@ -8,14 +8,14 @@ import pandas as pd
 import numpy as np
 import logging
 import itertools
-from sklearn.metrics.cluster import adjusted_rand_score
-from sklearn.metrics import f1_score
+from sklearn.metrics.cluster import *
 from com.expleague.media_space.topics_script import TopicsScript
 from com.expleague.media_space.input import NewsGasparettiInput
 from com.expleague.media_space.topics.params import ProcessingParams, StartupParams
 from com.expleague.media_space.topics.embedding_model import GasparettiTextNormalizer
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"))
+MODELS_DIR = os.path.join(DATA_DIR, "models")
 BIGARTM_DIR = os.path.join(DATA_DIR, "bigartm")
 
 
@@ -24,7 +24,16 @@ class ScoreComputer:
         self.story_ids = story_ids
 
     def compute_score(self, predicted_stories_list):
-        return adjusted_rand_score(self.story_ids, predicted_stories_list)
+        return "\n" + f"adjusted_rand_score=" \
+                      f"{str(adjusted_rand_score(self.story_ids, predicted_stories_list))}\n" \
+                      f"adjusted_mutual_info_score=" \
+                      f"{str(adjusted_mutual_info_score(self.story_ids, predicted_stories_list))}\n" \
+                      f"normalized_mutual_info_score=" \
+                      f"{str(normalized_mutual_info_score(self.story_ids, predicted_stories_list))}\n" \
+                      f"completeness_score=" \
+                      f"{str(completeness_score(self.story_ids, predicted_stories_list))}\n" \
+                      f"homogeneity_score=" \
+                      f"{str(homogeneity_score(self.story_ids, predicted_stories_list))}\n"
 
 
 def generate_data_for_bigartm(file_path):
@@ -121,8 +130,8 @@ def compute_score_topic_modeling(score_cmp=None,
                                  story_window=4,
                                  lexic_result_word_num=10,
                                  sclale_dist=100,
+                                 verbose=False,
                                  input_file_path="gasparetti_small.csv",
-                                 models_path="/home/andreitsy/git/topics/data/models",
                                  start='10.03.2014',
                                  end='26.03.2014'):
     articles_input = NewsGasparettiInput(input_file_path)
@@ -131,28 +140,28 @@ def compute_score_topic_modeling(score_cmp=None,
     start = datetime.datetime.strptime(start, '%d.%m.%Y').replace(tzinfo=datetime.timezone.utc)
     end = datetime.datetime.strptime(end, '%d.%m.%Y').replace(tzinfo=datetime.timezone.utc)
 
-    embedding_file_path = os.path.join(models_path, "news_dragnet.vec")
-    idf_file_path = os.path.join(models_path, 'idf_dragnet.txt')
-    cluster_centroids_file_path = os.path.join(models_path, 'cluster_centroids_filtered.txt')
-    cluster_names_file_path = os.path.join(models_path, 'cluster_names_filtered.txt')
-    topics_matching_file_path = os.path.join(models_path, 'topic_matching.txt')
+    embedding_file_path = os.path.join(MODELS_DIR, "news_dragnet.vec")
+    idf_file_path = os.path.join(MODELS_DIR, 'idf_dragnet.txt')
+    cluster_centroids_file_path = os.path.join(MODELS_DIR, 'cluster_centroids_filtered.txt')
+    cluster_names_file_path = os.path.join(MODELS_DIR, 'cluster_names_filtered.txt')
+    topics_matching_file_path = os.path.join(MODELS_DIR, 'topic_matching.txt')
 
     params_logging_str = f"FROM_DATE: {start}\n" \
-        f"TO_DATE: {end}\n\n" \
-        f"EMBEDDING_FILE_PATH: {embedding_file_path}\n" \
-        f"IDF_FILE_PATH: {idf_file_path}\n" \
-        f"CLUSTER_CENTROIDS_FILE_PATH: {cluster_centroids_file_path}\n\n" \
-        f"MIN_SENTENCE_LEN: {min_sentence_len}\n" \
-        f"TOPIC_COS_THRESHOLD: {topic_cos_threshold}\n" \
-        f"NEWS_CLUSTERING_THRESHOLD: {news_clustering_threshold}\n" \
-        f"NEWS_CLUSTERING_MIN_CLUSTER_SIZE: {news_clustering_min_cluster_size}\n" \
-        f"STORIES_CLUSTERING_THRESHOLD: {stories_clustering_threshold}\n" \
-        f"STORIES_CLUSTERING_MIN_CLUSTER_SIZE: {stories_clustering_min_cluster_size}\n" \
-        f"NGRAMS_FOR_TOPICS_LABELLING: {ngrams_for_topics_labelling}\n" \
-        f"STORIES_CONNECTING_COS_THRESHOLD: {stories_connecting_cos_threshold}\n" \
-        f"STORY_WINDOW: {story_window}\n" \
-        f"LEXIC_RESULT_WORD_NUM: {lexic_result_word_num}\n" \
-        f"SCALE_DIST: {sclale_dist}\n"
+                         f"TO_DATE: {end}\n\n" \
+                         f"EMBEDDING_FILE_PATH: {embedding_file_path}\n" \
+                         f"IDF_FILE_PATH: {idf_file_path}\n" \
+                         f"CLUSTER_CENTROIDS_FILE_PATH: {cluster_centroids_file_path}\n\n" \
+                         f"MIN_SENTENCE_LEN: {min_sentence_len}\n" \
+                         f"TOPIC_COS_THRESHOLD: {topic_cos_threshold}\n" \
+                         f"NEWS_CLUSTERING_THRESHOLD: {news_clustering_threshold}\n" \
+                         f"NEWS_CLUSTERING_MIN_CLUSTER_SIZE: {news_clustering_min_cluster_size}\n" \
+                         f"STORIES_CLUSTERING_THRESHOLD: {stories_clustering_threshold}\n" \
+                         f"STORIES_CLUSTERING_MIN_CLUSTER_SIZE: {stories_clustering_min_cluster_size}\n" \
+                         f"NGRAMS_FOR_TOPICS_LABELLING: {ngrams_for_topics_labelling}\n" \
+                         f"STORIES_CONNECTING_COS_THRESHOLD: {stories_connecting_cos_threshold}\n" \
+                         f"STORY_WINDOW: {story_window}\n" \
+                         f"LEXIC_RESULT_WORD_NUM: {lexic_result_word_num}\n" \
+                         f"SCALE_DIST: {sclale_dist}\n"
     logging.info('Parameters used:\n' + params_logging_str)
     processor = TopicsScript(
         StartupParams(start, end),
@@ -163,7 +172,7 @@ def compute_score_topic_modeling(score_cmp=None,
                          news_clustering_min_cluster_size, stories_clustering_threshold,
                          stories_clustering_min_cluster_size, ngrams_for_topics_labelling,
                          stories_connecting_cos_threshold, story_window, lexic_result_word_num, sclale_dist))
-    topic_news = processor.run(articles_input, text_normalizer, verbose=False)
+    topic_news = processor.run(articles_input, text_normalizer, verbose=verbose)
     dict_clusters = dict()
     for cluster_id in topic_news:
         articles = topic_news[cluster_id]
@@ -175,8 +184,8 @@ def compute_score_topic_modeling(score_cmp=None,
         cluster_id = dict_clusters.get(row["url"], "0")
         output_clusters.loc[index] = [row["url"], row["timestamp"], cluster_id, row["story"]]
     if score_cmp:
-        score = score_cmp.compute_score(output_clusters["story_id_predicted"])
-        logging.info('TM score : ' + str(score) + "\n")
+        score = score_cmp.compute_score(output_clusters["story_id_predicted"].to_list())
+        logging.info('Score : ' + str(score) + "\n")
 
 
 def parameters_topic_modeling(score_cmp, input_file_path,
@@ -246,19 +255,52 @@ if __name__ == "__main__":
                                                 target_folder=os.path.join(BIGARTM_DIR, "gasparetti_batches"))
         dictionary = batch_vectorizer.dictionary
 
-    parameters_topic_modeling(score_computer, input_file_path,
-                              [0.1, 0.3, 0.7],
-                              [0.01, 0.05, 0.2],
-                              [2, 5, 10],
-                              [0.2, 0.5, 0.9])
+    # compute_score_topic_modeling(
+    #     score_cmp=score_computer,
+    #     min_sentence_len=5,
+    #     topic_cos_threshold=0.4,
+    #     news_clustering_threshold=0.7,
+    #     news_clustering_min_cluster_size=2,
+    #     stories_clustering_threshold=0.3,
+    #     stories_clustering_min_cluster_size=3,
+    #     ngrams_for_topics_labelling=5,
+    #     stories_connecting_cos_threshold=0.8,
+    #     story_window=4,
+    #     lexic_result_word_num=5,
+    #     sclale_dist=800,
+    #     input_file_path=input_file_path,
+    #     verbose=False,
+    # )
 
-    parameters_variate_lda([0.01, 0.05],
+    # parameters_topic_modeling(score_computer, input_file_path,
+    #                           [0.6],
+    #                           [0.01],
+    #                           [4],
+    #                           [0.5])
+    parameters_variate_lda([0.01],
                            [0.02],
                            [num_topics],
                            dictionary, batch_vectorizer, score_computer)
+    # parameters_variate_big_artm([num_topics],
+    #                             [-0.3],
+    #                             dictionary,
+    #                             batch_vectorizer,
+    #                             score_computer)
 
-    parameters_variate_big_artm([num_topics],
-                                [-0.3, -0.27],
-                                dictionary,
-                                batch_vectorizer,
-                                score_computer)
+    for topic_cos_threshold in [0.7]:
+        compute_score_topic_modeling(
+            score_cmp=score_computer,
+            min_sentence_len=6,
+            topic_cos_threshold=topic_cos_threshold,
+            news_clustering_threshold=0.7,
+            news_clustering_min_cluster_size=2,
+            stories_clustering_threshold=0.6,
+            stories_clustering_min_cluster_size=4,
+            stories_connecting_cos_threshold=0.8,
+            story_window=4,
+            lexic_result_word_num=5,
+            sclale_dist=500,
+            input_file_path=input_file_path,
+            start='10.03.2014',
+            end='15.03.2014',
+            verbose=True)
