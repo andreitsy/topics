@@ -6,7 +6,7 @@ import itertools
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+DATA_DIR = "/mnt/c/Users/griff/YandexDisk/cs_center/topics/data"
 
 
 def read_news_corpora():
@@ -46,11 +46,13 @@ if __name__ == "__main__":
         return datetime.utcfromtimestamp(int(ts) / 1000)
 
     times = defaultdict(list)
+    times_epoch = defaultdict(list)
     num_errors = 0
     for index, row in texts.iterrows():
-        time = row["TIMESTAMP"]
+        time_epoch = row["TIMESTAMP"]
+        times_epoch[row["STORY"]].append(int(time_epoch))
         try:
-            date = convert_epoch(time)
+            date = convert_epoch(time_epoch)
         except ValueError:
             num_errors += 1
             # print("Error:", row)
@@ -59,6 +61,7 @@ if __name__ == "__main__":
             times[story].append(date)
     print("Num errors: ", num_errors)
     print("number_of_stories", len(times))
+    print(list(times.items())[:10])
     durations = list()
     number_of_news = 0
     for k in times:
@@ -71,3 +74,15 @@ if __name__ == "__main__":
     print(np.max(durations))
     print(np.mean(durations))
     print(np.median(durations))
+
+    durations_ = list()
+    for k in times_epoch:
+        number_of_news += len(times_epoch[k])
+        if len(times_epoch[k]) > 1:
+            story_news = sorted(times_epoch[k])
+            duration = story_news[-1] - story_news[0]
+            durations_.append(duration)
+    print(np.max(durations_))
+    print(np.mean(durations_))
+    print(np.median(durations_))
+

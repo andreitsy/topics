@@ -31,14 +31,14 @@ def load_fasttext(fname, skip=0, limit=10e9):
 
 # noinspection PyArgumentList
 def main():
-    data, words = load_fasttext(os.path.join(DATA_DIR, "news_dragnet.vec"), 2000, 100000)
+    data, words = load_fasttext(os.path.join(DATA_DIR, "news_dragnet.vec"), 2000, 90000)
     # data, words = load_glove('lenta-decomp-new', 20000)
 
     data = normalize(data)
     #threshold = 0.8
     #min_cluster = 50
-    threshold = 0.82
-    min_cluster = 80
+    threshold = 0.85
+    min_cluster = 100
 
     cluster_words = list()
 
